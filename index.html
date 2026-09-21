@@ -1,0 +1,1276 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Una flor para otra flor</title>
+
+<style>
+*{
+    box-sizing:border-box;
+}
+
+html,body{
+    margin:0;
+    width:100%;
+    height:100%;
+    overflow:hidden;
+    background:#eee7dc;
+    font-family:Georgia,"Times New Roman",serif;
+}
+
+#escena{
+    position:relative;
+    width:100vw;
+    height:56.25vw;
+    max-height:100vh;
+    max-width:177.78vh;
+    margin:auto;
+    overflow:hidden;
+
+    background:
+        radial-gradient(
+            circle at 52% 38%,
+            #fffaf0 0%,
+            #f5ead8 48%,
+            #e9d8bf 100%
+        );
+}
+
+canvas{
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+}
+
+#suelo{
+    position:absolute;
+    left:3%;
+    right:3%;
+    bottom:7%;
+    height:3px;
+    background:#3b332c;
+    border-radius:10px;
+}
+
+#texto{
+    position:absolute;
+    left:3.5%;
+    top:7%;
+    width:43%;
+    height:80%;
+
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:flex-start;
+
+    color:#38271e;
+    z-index:5;
+}
+
+.titulo{
+    font-size:clamp(19px,2.55vw,40px);
+    font-weight:bold;
+    white-space:nowrap;
+    margin-bottom:22px;
+}
+
+.linea{
+    display:block;
+    white-space:nowrap;
+    font-size:clamp(12px,1.48vw,23px);
+    line-height:1.5;
+}
+
+.firma{
+    margin-top:21px;
+    font-size:clamp(13px,1.55vw,24px);
+    font-style:italic;
+}
+
+.letra{
+    display:inline-block;
+    opacity:0;
+    transform:translateY(13px) scale(.96);
+    filter:blur(2px);
+    animation:aparecer .55s ease forwards;
+}
+
+.palabra{
+    display:inline-block;
+    margin-right:.30em;
+}
+
+@keyframes aparecer{
+    to{
+        opacity:1;
+        transform:translateY(0) scale(1);
+        filter:blur(0);
+    }
+}
+
+#reset{
+    position:absolute;
+    top:3%;
+    right:3%;
+    width:42px;
+    height:42px;
+    border:0;
+    border-radius:50%;
+    background:rgba(255,255,255,.65);
+    color:#4b3528;
+    font-size:25px;
+    cursor:pointer;
+    z-index:20;
+    box-shadow:0 3px 12px rgba(0,0,0,.12);
+}
+
+#reset:active{
+    transform:scale(.92);
+}
+</style>
+</head>
+
+<body>
+
+<div id="escena">
+
+    <canvas id="canvas"></canvas>
+
+    <div id="suelo"></div>
+
+    <div id="texto"></div>
+
+    <button id="reset">↻</button>
+
+</div>
+
+<script>
+
+const canvas =
+    document.getElementById("canvas");
+
+const ctx =
+    canvas.getContext("2d");
+
+const texto =
+    document.getElementById("texto");
+
+let W,H;
+let inicio;
+
+let ramas=[];
+let flores=[];
+let floresVolando=[];
+let raices=[];
+
+
+/*
+==================================================
+LÍMITE INVISIBLE DEL ÁRBOL
+==================================================
+*/
+
+const LIMITE_ARBOL = .49;
+
+
+/*
+==================================================
+REDIMENSIONAR
+==================================================
+*/
+
+function resize(){
+
+    const rect =
+        canvas.getBoundingClientRect();
+
+    W = rect.width;
+    H = rect.height;
+
+    canvas.width =
+        W * devicePixelRatio;
+
+    canvas.height =
+        H * devicePixelRatio;
+
+    ctx.setTransform(
+        devicePixelRatio,
+        0,
+        0,
+        devicePixelRatio,
+        0,
+        0
+    );
+}
+
+
+/*
+==================================================
+RAMAS
+==================================================
+*/
+
+function crearRamas(){
+
+    ramas=[
+
+        {
+            tipo:"tronco",
+            x1:W*.73,
+            y1:H*.87,
+            cx:W*.68,
+            cy:H*.68,
+            x2:W*.70,
+            y2:H*.47,
+            grosorInicio:36,
+            grosorFinal:16,
+            retraso:.15,
+            duracion:2.4
+        },
+
+        {
+            tipo:"rama",
+            x1:W*.70,
+            y1:H*.59,
+            cx:W*.59,
+            cy:H*.49,
+            x2:W*.49,
+            y2:H*.43,
+            grosorInicio:17,
+            grosorFinal:7,
+            retraso:1.4,
+            duracion:1.35
+        },
+
+        {
+            tipo:"rama",
+            x1:W*.61,
+            y1:H*.51,
+            cx:W*.55,
+            cy:H*.42,
+            x2:W*.49,
+            y2:H*.36,
+            grosorInicio:13,
+            grosorFinal:5,
+            retraso:1.7,
+            duracion:1.25
+        },
+
+        {
+            tipo:"rama",
+            x1:W*.52,
+            y1:H*.43,
+            cx:W*.50,
+            cy:H*.35,
+            x2:W*.49,
+            y2:H*.30,
+            grosorInicio:10,
+            grosorFinal:4,
+            retraso:2,
+            duracion:1.1
+        },
+
+        {
+            tipo:"rama",
+            x1:W*.70,
+            y1:H*.49,
+            cx:W*.70,
+            cy:H*.34,
+            x2:W*.76,
+            y2:H*.22,
+            grosorInicio:12,
+            grosorFinal:4,
+            retraso:1.85,
+            duracion:1.15
+        },
+
+        {
+            tipo:"rama",
+            x1:W*.67,
+            y1:H*.48,
+            cx:W*.59,
+            cy:H*.34,
+            x2:W*.56,
+            y2:H*.19,
+            grosorInicio:11,
+            grosorFinal:4,
+            retraso:1.95,
+            duracion:1.1
+        },
+
+        {
+            tipo:"rama",
+            x1:W*.68,
+            y1:H*.57,
+            cx:W*.78,
+            cy:H*.48,
+            x2:W*.88,
+            y2:H*.39,
+            grosorInicio:15,
+            grosorFinal:6,
+            retraso:1.45,
+            duracion:1.35
+        },
+
+        {
+            tipo:"rama",
+            x1:W*.78,
+            y1:H*.48,
+            cx:W*.87,
+            cy:H*.40,
+            x2:W*.94,
+            y2:H*.31,
+            grosorInicio:10,
+            grosorFinal:4,
+            retraso:1.9,
+            duracion:1.1
+        },
+
+        {
+            tipo:"rama",
+            x1:W*.85,
+            y1:H*.42,
+            cx:W*.92,
+            cy:H*.36,
+            x2:W*.97,
+            y2:H*.27,
+            grosorInicio:8,
+            grosorFinal:3,
+            retraso:2.15,
+            duracion:1
+        }
+    ];
+}
+
+
+/*
+==================================================
+RAÍCES
+==================================================
+*/
+
+function crearRaices(){
+
+    raices=[
+
+        {
+            x1:W*.72,
+            y1:H*.85,
+            cx:W*.66,
+            cy:H*.88,
+            x2:W*.57,
+            y2:H*.88,
+            grosor:7
+        },
+
+        {
+            x1:W*.73,
+            y1:H*.86,
+            cx:W*.78,
+            cy:H*.89,
+            x2:W*.87,
+            y2:H*.89,
+            grosor:6
+        },
+
+        {
+            x1:W*.70,
+            y1:H*.85,
+            cx:W*.68,
+            cy:H*.90,
+            x2:W*.62,
+            y2:H*.92,
+            grosor:5
+        },
+
+        {
+            x1:W*.75,
+            y1:H*.85,
+            cx:W*.81,
+            cy:H*.87,
+            x2:W*.91,
+            y2:H*.86,
+            grosor:5
+        }
+    ];
+}
+
+
+/*
+==================================================
+FLORES DE LA COPA
+
+IMPORTANTE:
+Las flores ahora se generan siguiendo
+la estructura de las ramas.
+
+No usamos grandes rectángulos aleatorios.
+
+Cada zona está pegada a una rama o
+a la parte superior de la copa.
+==================================================
+*/
+
+function crearFlores(){
+
+    flores=[];
+
+
+    /*
+    Cada zona representa una parte real
+    de la copa alrededor de las ramas.
+
+    x = centro
+    y = centro
+    rx/ry = tamaño
+    */
+
+    const zonas=[
+
+        /* Rama superior izquierda */
+        {
+            x:.55,
+            y:.25,
+            rx:.10,
+            ry:.13
+        },
+
+        /* Parte superior central */
+        {
+            x:.65,
+            y:.18,
+            rx:.13,
+            ry:.11
+        },
+
+        /* Parte superior derecha */
+        {
+            x:.77,
+            y:.21,
+            rx:.14,
+            ry:.13
+        },
+
+        /* Rama izquierda */
+        {
+            x:.55,
+            y:.38,
+            rx:.11,
+            ry:.12
+        },
+
+        /* Centro */
+        {
+            x:.67,
+            y:.34,
+            rx:.14,
+            ry:.15
+        },
+
+        /* Rama derecha */
+        {
+            x:.80,
+            y:.37,
+            rx:.14,
+            ry:.14
+        },
+
+        /* Extremo derecho */
+        {
+            x:.90,
+            y:.31,
+            rx:.10,
+            ry:.11
+        },
+
+        /* Parte inferior de la copa */
+        {
+            x:.67,
+            y:.46,
+            rx:.16,
+            ry:.12
+        },
+
+        {
+            x:.81,
+            y:.47,
+            rx:.12,
+            ry:.10
+        }
+    ];
+
+
+    /*
+    Generamos las flores dentro de cada
+    zona elíptica.
+    */
+
+    for(let i=0;i<120;i++){
+
+        const z=
+            zonas[
+                Math.floor(
+                    Math.random()*
+                    zonas.length
+                )
+            ];
+
+
+        let x;
+        let y;
+
+        /*
+        Elegimos un punto dentro de
+        una elipse.
+        */
+
+        do{
+
+            const angulo=
+                Math.random()*
+                Math.PI*2;
+
+            const distancia=
+                Math.sqrt(
+                    Math.random()
+                );
+
+            x=
+                z.x+
+                Math.cos(angulo)*
+                z.rx*
+                distancia;
+
+            y=
+                z.y+
+                Math.sin(angulo)*
+                z.ry*
+                distancia;
+
+        }while(
+            x<LIMITE_ARBOL+.035 ||
+            y<.08 ||
+            y>.59
+        );
+
+
+        /*
+        La flor queda asociada a una
+        posición natural de la copa.
+        */
+
+        flores.push({
+
+            x:W*x,
+
+            y:H*y,
+
+            escala:
+                .48+
+                Math.random()*.55,
+
+            rotacion:
+                Math.random()*
+                Math.PI*2,
+
+            retraso:
+                4.1+
+                Math.random()*1.6
+        });
+    }
+}
+
+
+/*
+==================================================
+FLORES QUE VUELAN
+==================================================
+*/
+
+function crearFloresVolando(){
+
+    floresVolando=[];
+
+    for(let i=0;i<28;i++){
+
+        const origenX=
+            W*
+            (
+                .48+
+                Math.random()*.43
+            );
+
+        const origenY=
+            H*
+            (
+                .20+
+                Math.random()*.48
+            );
+
+        const destinoX=
+            W*
+            (
+                .04+
+                Math.random()*.35
+            );
+
+        const destinoY=
+            H*
+            (
+                .20+
+                Math.random()*.58
+            );
+
+        floresVolando.push({
+
+            ox:origenX,
+            oy:origenY,
+
+            dx:destinoX,
+            dy:destinoY,
+
+            inicio:
+                6000+
+                i*280,
+
+            duracion:
+                2600+
+                Math.random()*1300,
+
+            escala:
+                .38+
+                Math.random()*.35,
+
+            rotacion:
+                Math.random()*
+                Math.PI*2,
+
+            amplitud:
+                10+
+                Math.random()*22,
+
+            frecuencia:
+                1+
+                Math.random()*2
+        });
+    }
+}
+
+
+/*
+==================================================
+DIBUJAR FLOR
+==================================================
+*/
+
+function dibujarFlor(
+    x,
+    y,
+    escala,
+    rotacion,
+    alpha=1
+){
+
+    ctx.save();
+
+    ctx.translate(x,y);
+    ctx.rotate(rotacion);
+    ctx.scale(escala,escala);
+
+    ctx.globalAlpha=alpha;
+
+
+    /*
+    Tallo
+    */
+
+    ctx.strokeStyle="#55743d";
+    ctx.lineWidth=1.8;
+
+    ctx.beginPath();
+
+    ctx.moveTo(0,8);
+    ctx.lineTo(0,19);
+
+    ctx.stroke();
+
+
+    /*
+    Pétalos
+    */
+
+    for(let i=0;i<5;i++){
+
+        ctx.save();
+
+        ctx.rotate(
+            i*
+            Math.PI*2/5
+        );
+
+        ctx.fillStyle="#f5c928";
+
+        ctx.beginPath();
+
+        ctx.ellipse(
+            0,
+            -8,
+            6,
+            11,
+            0,
+            0,
+            Math.PI*2
+        );
+
+        ctx.fill();
+
+        ctx.restore();
+    }
+
+
+    /*
+    Centro
+    */
+
+    ctx.fillStyle="#8a5b20";
+
+    ctx.beginPath();
+
+    ctx.arc(
+        0,
+        0,
+        4,
+        0,
+        Math.PI*2
+    );
+
+    ctx.fill();
+
+    ctx.restore();
+}
+
+
+/*
+==================================================
+DIBUJAR RAMA
+==================================================
+*/
+
+function dibujarRama(r,t){
+
+    let p=
+        Math.max(
+            0,
+            Math.min(
+                1,
+                (t-r.retraso)/
+                r.duracion
+            )
+        );
+
+    if(p<=0)return;
+
+
+    const x2=
+        r.x1+
+        (r.x2-r.x1)*p;
+
+    const y2=
+        r.y1+
+        (r.y2-r.y1)*p;
+
+    const cx=
+        r.x1+
+        (r.cx-r.x1)*p;
+
+    const cy=
+        r.y1+
+        (r.cy-r.y1)*p;
+
+    const grosor=
+        r.grosorInicio+
+        (
+            r.grosorFinal-
+            r.grosorInicio
+        )*p;
+
+
+    ctx.save();
+
+
+    /*
+    Sombra
+    */
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+        r.x1+3,
+        r.y1+3
+    );
+
+    ctx.quadraticCurveTo(
+        r.cx+3,
+        r.cy+3,
+        x2+3,
+        y2+3
+    );
+
+    ctx.strokeStyle=
+        "rgba(35,25,19,.20)";
+
+    ctx.lineWidth=
+        grosor+4;
+
+    ctx.lineCap="round";
+
+    ctx.stroke();
+
+
+    /*
+    Rama principal
+    */
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+        r.x1,
+        r.y1
+    );
+
+    ctx.quadraticCurveTo(
+        cx,
+        cy,
+        x2,
+        y2
+    );
+
+
+    const grad=
+        ctx.createLinearGradient(
+            r.x1,
+            r.y1,
+            x2,
+            y2
+        );
+
+    grad.addColorStop(
+        0,
+        "#39271e"
+    );
+
+    grad.addColorStop(
+        .28,
+        "#604333"
+    );
+
+    grad.addColorStop(
+        .55,
+        "#76503b"
+    );
+
+    grad.addColorStop(
+        .78,
+        "#5a3c2d"
+    );
+
+    grad.addColorStop(
+        1,
+        "#302119"
+    );
+
+    ctx.strokeStyle=grad;
+
+    ctx.lineWidth=grosor;
+
+    ctx.lineCap="round";
+
+    ctx.stroke();
+
+
+    /*
+    Luz suave
+    */
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+        r.x1,
+        r.y1
+    );
+
+    ctx.quadraticCurveTo(
+        cx,
+        cy,
+        x2,
+        y2
+    );
+
+    ctx.lineWidth=
+        Math.max(
+            2,
+            grosor*.25
+        );
+
+    ctx.strokeStyle=
+        "rgba(190,145,105,.20)";
+
+    ctx.stroke();
+
+    ctx.restore();
+}
+
+
+/*
+==================================================
+RAÍCES
+==================================================
+*/
+
+function dibujarRaices(){
+
+    for(const r of raices){
+
+        ctx.beginPath();
+
+        ctx.moveTo(
+            r.x1,
+            r.y1
+        );
+
+        ctx.quadraticCurveTo(
+            r.cx,
+            r.cy,
+            r.x2,
+            r.y2
+        );
+
+        ctx.strokeStyle="#4b3326";
+
+        ctx.lineWidth=r.grosor;
+
+        ctx.lineCap="round";
+
+        ctx.stroke();
+    }
+}
+
+
+/*
+==================================================
+TEXTO
+==================================================
+*/
+
+function prepararTexto(){
+
+    texto.innerHTML="";
+
+
+    const titulo=
+        document.createElement("div");
+
+    titulo.className="titulo";
+
+    titulo.innerHTML=
+        convertirLetras(
+            "Una flor para otra flor",
+            7200,
+            35
+        );
+
+    texto.appendChild(titulo);
+
+
+    const lineas=[
+
+        "En un día tan especial",
+        "Me gustaría estar ahí",
+        "Y entregarte estas flores",
+        "Aunque no pueda",
+        "Te las regalo de corazón"
+
+    ];
+
+
+    lineas.forEach(
+        (linea,index)=>{
+
+            const div=
+                document.createElement("div");
+
+            div.className="linea";
+
+            div.innerHTML=
+                convertirLetras(
+                    linea,
+                    7900+
+                    index*550,
+                    32
+                );
+
+            texto.appendChild(div);
+        }
+    );
+
+
+    const firma=
+        document.createElement("div");
+
+    firma.className="firma";
+
+    firma.innerHTML=
+        convertirLetras(
+            "Te quiero Anaid",
+            11100,
+            45
+        );
+
+    texto.appendChild(firma);
+
+
+    const firma2=
+        document.createElement("div");
+
+    firma2.className="firma";
+
+    firma2.innerHTML=
+        convertirLetras(
+            "Yo, tu Batman",
+            11800,
+            55
+        );
+
+    texto.appendChild(firma2);
+}
+
+
+/*
+==================================================
+LETRAS
+==================================================
+*/
+
+function convertirLetras(
+    frase,
+    comienzo,
+    velocidad
+){
+
+    return frase
+        .split(" ")
+        .map(palabra=>{
+
+            return `
+                <span class="palabra">
+                    ${
+                        palabra
+                        .split("")
+                        .map((letra,i)=>{
+
+                            const delay=
+                                comienzo+
+                                i*velocidad;
+
+                            return `
+                                <span
+                                    class="letra"
+                                    style="
+                                    animation-delay:
+                                    ${delay}ms"
+                                >${letra}</span>
+                            `;
+
+                        })
+                        .join("")
+                    }
+                </span>
+            `;
+
+        })
+        .join("");
+}
+
+
+/*
+==================================================
+ANIMACIÓN
+==================================================
+*/
+
+function dibujar(){
+
+    const ahora=
+        performance.now();
+
+    const t=
+        (ahora-inicio)/1000;
+
+
+    ctx.clearRect(
+        0,
+        0,
+        W,
+        H
+    );
+
+
+    /*
+    Árbol
+    */
+
+    for(const rama of ramas){
+
+        dibujarRama(
+            rama,
+            t
+        );
+    }
+
+
+    /*
+    Raíces
+    */
+
+    if(t>2){
+
+        dibujarRaices();
+    }
+
+
+    /*
+    Flores de la copa
+    */
+
+    for(const flor of flores){
+
+        let p=
+            Math.max(
+                0,
+                Math.min(
+                    1,
+                    (t-flor.retraso)/.75
+                )
+            );
+
+        if(p>0){
+
+            const crecimiento=
+                .08+
+                .92*
+                (
+                    1-
+                    Math.pow(
+                        1-p,
+                        3
+                    )
+                );
+
+            dibujarFlor(
+                flor.x,
+                flor.y,
+                flor.escala*
+                crecimiento,
+                flor.rotacion
+            );
+        }
+    }
+
+
+    /*
+    Flores voladoras
+    */
+
+    for(const flor of floresVolando){
+
+        const tiempo=
+            ahora-inicio;
+
+
+        if(tiempo<flor.inicio)
+            continue;
+
+
+        let p=
+            (
+                tiempo-
+                flor.inicio
+            )/
+            flor.duracion;
+
+
+        if(p>1)
+            p=1;
+
+
+        const movimiento=
+            p*p*
+            (3-2*p);
+
+
+        let x=
+            flor.ox+
+            (
+                flor.dx-
+                flor.ox
+            )*
+            movimiento;
+
+
+        let y=
+            flor.oy+
+            (
+                flor.dy-
+                flor.oy
+            )*
+            movimiento;
+
+
+        y+=
+            Math.sin(
+                p*
+                Math.PI*
+                2*
+                flor.frecuencia
+            )*
+            flor.amplitud;
+
+
+        const rot=
+            flor.rotacion+
+            p*Math.PI*3;
+
+
+        /*
+        Desaparición al llegar
+        */
+
+        let alpha=1;
+
+        if(p>.78){
+
+            alpha=
+                1-
+                (
+                    (p-.78)/
+                    .22
+                );
+        }
+
+
+        if(p<.08){
+
+            alpha=
+                Math.min(
+                    alpha,
+                    p/.08
+                );
+        }
+
+
+        if(alpha>0){
+
+            dibujarFlor(
